@@ -1,0 +1,291 @@
+import 'package:flutter/material.dart';
+import '../../../models/language.dart';
+import '../../../models/level.dart';
+import '../../../models/question.dart';
+import '../../../models/note.dart';
+import '../../../core/utils/colors.dart';
+import '../../../core/utils/quiz_generator.dart';
+
+class QuizView extends StatefulWidget {
+  final Language language;
+  final Level level;
+  final VoidCallback onBack;
+  final Function(Note) onAddNote;
+
+  const QuizView({Key? key, required this.language, required this.level, required this.onBack, required this.onAddNote}) : super(key: key);
+
+  @override
+  State<QuizView> createState() => _QuizViewState();
+}
+
+class _QuizViewState extends State<QuizView> {
+  late List<Question> questions;
+  int currentQuestionIndex = 0;
+  String? selectedAnswer;
+  bool isAnswered = false;
+  int score = 0;
+  bool showResult = false;
+
+  @override
+  void initState() {
+    super.initState();
+    questions = QuizGenerator.generateQuestions(widget.language, widget.level);
+  }
+
+  Question get currentQuestion => questions[currentQuestionIndex];
+  double get progress => (currentQuestionIndex + 1) / questions.length;
+
+  void _selectAnswer(String answer) {
+    if (isAnswered) return;
+    setState(() {
+      selectedAnswer = answer;
+      isAnswered = true;
+      if (answer == currentQuestion.correctAnswer) score++;
+    });
+  }
+
+  void _handleNext() {
+    if (currentQuestionIndex < questions.length - 1) {
+      setState(() {
+        currentQuestionIndex++;
+        selectedAnswer = null;
+        isAnswered = false;
+      });
+    } else {
+      setState(() {
+        showResult = true;
+      });
+    }
+  }
+
+  void _saveToNotes() {
+    if (selectedAnswer != null && selectedAnswer != currentQuestion.correctAnswer) {
+      final note = Note(
+        id: 'note-${DateTime.now().millisecondsSinceEpoch}',
+        question: currentQuestion.question,
+        correctAnswer: currentQuestion.correctAnswer,
+        userAnswer: selectedAnswer!,
+        language: widget.language,
+        level: widget.level,
+      );
+      widget.onAddNote(note);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Not kaydedildi!'), backgroundColor: AppColors.purple600));
+    }
+  }
+
+  String _getResultEmoji() {
+    final percentage = (score / questions.length) * 100;
+    if (percentage >= 80) return '🎉';
+    if (percentage >= 60) return '🐰';
+    return '🥕';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (showResult) return _buildResultScreen();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              IconButton(onPressed: widget.onBack, icon: const Icon(Icons.arrow_back, color: AppColors.purple600)),
+              const Spacer(),
+              Text('${widget.language.name} - ${widget.level.code}', style: const TextStyle(fontSize: 14, color: Colors.black54)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Soru ${currentQuestionIndex + 1} / ${questions.length}', style: const TextStyle(fontSize: 14, color: Colors.black54)),
+              Text('🥕 $score puan', style: const TextStyle(fontSize: 14, color: AppColors.purple600, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(value: progress, minHeight: 8, backgroundColor: Colors.grey[200], valueColor: const AlwaysStoppedAnimation(AppColors.purple600)),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.purple100),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
+            ),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(currentQuestion.question, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87)),
+                const SizedBox(height: 20),
+                ...currentQuestion.options.map((option) {
+                  final isCorrect = option == currentQuestion.correctAnswer;
+                  final isSelected = option == selectedAnswer;
+                  Color backgroundColor = Colors.white;
+                  Color borderColor = Colors.grey.shade200;
+                  Color textColor = Colors.black87;
+                  Widget? trailing;
+
+                  if (isAnswered) {
+                    if (isCorrect) {
+                      backgroundColor = Colors.green.shade50;
+                      borderColor = Colors.green;
+                      textColor = Colors.green.shade700;
+                      trailing = const Icon(Icons.check, color: Colors.green);
+                    } else if (isSelected) {
+                      backgroundColor = Colors.red.shade50;
+                      borderColor = Colors.red;
+                      textColor = Colors.red.shade700;
+                      trailing = const Icon(Icons.close, color: Colors.red);
+                    } else {
+                      textColor = Colors.grey.shade500;
+                    }
+                  } else if (isSelected) {
+                    backgroundColor = AppColors.purple50;
+                    borderColor = AppColors.primaryPurple;
+                    textColor = AppColors.purple700;
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: InkWell(
+                      onTap: isAnswered ? null : () => _selectAnswer(option),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(color: backgroundColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: borderColor, width: 2)),
+                        child: Row(
+                          children: [
+                            Expanded(child: Text(option, style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.w500))),
+                            if (trailing != null) trailing,
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          if (isAnswered)
+            Row(
+              children: [
+                if (selectedAnswer != currentQuestion.correctAnswer)
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _saveToNotes,
+                      style: OutlinedButton.styleFrom(foregroundColor: AppColors.purple600, side: const BorderSide(color: AppColors.purple100), padding: const EdgeInsets.symmetric(vertical: 16)),
+                      child: const Text('📝 Notlara Ekle'),
+                    ),
+                  ),
+                if (selectedAnswer != currentQuestion.correctAnswer) const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    height: 50,
+                    decoration: BoxDecoration(gradient: AppColors.buttonGradient, borderRadius: BorderRadius.circular(8)),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _handleNext,
+                        borderRadius: BorderRadius.circular(8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(currentQuestionIndex < questions.length - 1 ? 'Sonraki Soru' : 'Sonuçları Gör', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                            const SizedBox(width: 8),
+                            const Text('🥕', style: TextStyle(fontSize: 16)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResultScreen() {
+    final percentage = (score / questions.length) * 100;
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              IconButton(onPressed: widget.onBack, icon: const Icon(Icons.arrow_back, color: AppColors.purple600)),
+              const Text('Ana Sayfa', style: TextStyle(color: AppColors.purple600, fontSize: 16)),
+            ],
+          ),
+          const SizedBox(height: 40),
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [AppColors.purple50, Color(0xFFE0F2FE)]),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
+            ),
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              children: [
+                Text(_getResultEmoji(), style: const TextStyle(fontSize: 60)),
+                const SizedBox(height: 16),
+                const Text('Quiz Tamamlandı!', style: TextStyle(color: AppColors.purple700, fontSize: 24, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Text('${widget.language.name} - ${widget.level.code}', style: const TextStyle(fontSize: 16, color: Colors.black54)),
+                const SizedBox(height: 24),
+                Container(
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      Text('$score / ${questions.length}', style: const TextStyle(color: AppColors.primaryPurple, fontSize: 40, fontWeight: FontWeight.bold)),
+                      const Text('Doğru Cevap', style: TextStyle(fontSize: 16, color: Colors.black54)),
+                      const SizedBox(height: 16),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: LinearProgressIndicator(value: score / questions.length, minHeight: 12, backgroundColor: Colors.grey[200], valueColor: const AlwaysStoppedAnimation(AppColors.purple600)),
+                      ),
+                      const SizedBox(height: 8),
+                      Text('%${percentage.toStringAsFixed(0)} Başarı', style: const TextStyle(fontSize: 14, color: Colors.black54)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  width: double.infinity,
+                  height: 60,
+                  decoration: BoxDecoration(gradient: AppColors.buttonGradient, borderRadius: BorderRadius.circular(8)),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: widget.onBack,
+                      borderRadius: BorderRadius.circular(8),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('🥕', style: TextStyle(fontSize: 20)),
+                          SizedBox(width: 12),
+                          Text('Yeni Quiz Başlat', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
