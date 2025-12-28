@@ -1,3 +1,5 @@
+// Dosya: lib/features/home/screens/main_screen.dart
+
 import 'package:flutter/material.dart';
 import '../../../models/language.dart';
 import '../../../models/level.dart';
@@ -7,6 +9,7 @@ import '../../../core/utils/colors.dart';
 import 'home_view.dart';
 import '../../quiz/screens/quiz_view.dart';
 import '../../notes/screens/notes_view.dart';
+import '../../profile/screens/profile_view.dart'; 
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -19,8 +22,16 @@ class _MainScreenState extends State<MainScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   Language? selectedLanguage;
   Level? selectedLevel;
-  int currentViewIndex = 0; // 0: home, 1: quiz, 2: notes
+  
+  // 0: Home, 1: Notes, 2: Profile, 3: Quiz
+  int _currentIndex = 0; 
+  
   List<Note> notes = [];
+
+  // --- OYUNLAŞTIRMA PUANLARI ---
+  int totalCarrots = 15; // Başlangıç puanı
+  int totalCorrect = 5;
+  int totalWrong = 2;
 
   void _openDrawer() => _scaffoldKey.currentState?.openDrawer();
 
@@ -33,18 +44,32 @@ class _MainScreenState extends State<MainScreen> {
 
   void _handleLevelSelect(Level level) {
     setState(() => selectedLevel = level);
-    Navigator.pop(context);
+    Navigator.pop(context); 
   }
 
   void _startQuiz() {
     if (selectedLanguage != null && selectedLevel != null) {
-      setState(() => currentViewIndex = 1);
+      setState(() => _currentIndex = 3); // Quiz modu
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lütfen önce dil ve seviye seçin!')),
+      );
     }
+  }
+
+  // Quiz Bittiğinde Puanları Güncelle
+  void _handleQuizFinish(int score, int totalQuestions) {
+    setState(() {
+      totalCarrots += score;
+      totalCorrect += score;
+      totalWrong += (totalQuestions - score);
+      
+      _currentIndex = 0; // Ana sayfaya dön
+    });
   }
 
   void _addNote(Note note) => setState(() => notes.add(note));
   void _deleteNote(String id) => setState(() => notes.removeWhere((n) => n.id == id));
-  
   void _updateNote(String id, String noteText) {
     setState(() {
       final index = notes.indexWhere((n) => n.id == id);
@@ -52,11 +77,16 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
-  void _goToHome() => setState(() => currentViewIndex = 0);
-  void _goToNotes() => setState(() => currentViewIndex = 2);
+  void _onBottomNavTap(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    bool isQuizMode = _currentIndex == 3;
+
     return Scaffold(
       key: _scaffoldKey,
       drawer: LanguageDrawer(
@@ -70,98 +100,97 @@ class _MainScreenState extends State<MainScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              Container(
-                color: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  children: [
-                    InkWell(
-                      onTap: _openDrawer,
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        child: const Icon(Icons.language, color: AppColors.primaryPurple, size: 24),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text('🐰', style: TextStyle(fontSize: 24)),
-                    const SizedBox(width: 8),
-                    const Text('Smart Bunny', style: TextStyle(color: AppColors.purple700, fontSize: 20, fontWeight: FontWeight.w600)),
-                    const Spacer(),
-                    InkWell(
-                      onTap: _goToHome,
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: currentViewIndex == 0 ? AppColors.purple100 : Colors.transparent, borderRadius: BorderRadius.circular(8)),
-                        child: const Icon(Icons.book_outlined, color: AppColors.primaryPurple, size: 20),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    InkWell(
-                      onTap: _goToNotes,
-                      borderRadius: BorderRadius.circular(8),
-                      child: Stack(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(color: currentViewIndex == 2 ? AppColors.purple100 : Colors.transparent, borderRadius: BorderRadius.circular(8)),
-                            child: const Icon(Icons.sticky_note_2_outlined, color: AppColors.primaryPurple, size: 20),
-                          ),
-                          if (notes.isNotEmpty)
-                            Positioned(
-                              right: 0,
-                              top: 0,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(color: AppColors.purple600, shape: BoxShape.circle),
-                                constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
-                                child: Text('${notes.length}', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
+              // Üst Bar (Sadece Home'da ve Quiz dışında göster)
+              if (!isQuizMode)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    children: [
+                      if (_currentIndex == 0)
+                        InkWell(
+                          onTap: _openDrawer,
+                          child: const Icon(Icons.sort, color: AppColors.purple700, size: 28),
+                        ),
+                      const SizedBox(width: 12),
+                      const Text('🐰 Smart Bunny', style: TextStyle(color: AppColors.purple700, fontSize: 20, fontWeight: FontWeight.bold)),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            const Text('🥕', style: TextStyle(fontSize: 16)),
+                            const SizedBox(width: 4),
+                            Text('$totalCarrots', style: const TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      )
+                    ],
+                  ),
                 ),
+              
+              Expanded(
+                child: _buildBody(),
               ),
-              Expanded(child: _buildCurrentView()),
             ],
           ),
         ),
       ),
+      
+      bottomNavigationBar: isQuizMode ? null : BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: _onBottomNavTap,
+        selectedItemColor: AppColors.primaryPurple,
+        unselectedItemColor: Colors.grey,
+        showUnselectedLabels: false,
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Ana Sayfa'),
+          BottomNavigationBarItem(icon: Icon(Icons.book_rounded), label: 'Notlarım'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profilim'),
+        ],
+      ),
     );
   }
 
-  Widget _buildCurrentView() {
-    if (currentViewIndex == 0) {
-      return HomeView(
-        selectedLanguage: selectedLanguage,
-        selectedLevel: selectedLevel,
-        notesCount: notes.length,
-        onOpenDrawer: _openDrawer,
-        onStartQuiz: _startQuiz,
-      );
-    } else if (currentViewIndex == 1 && selectedLanguage != null && selectedLevel != null) {
-      return QuizView(
-        language: selectedLanguage!,
-        level: selectedLevel!,
-        onBack: _goToHome,
-        onAddNote: _addNote,
-      );
-    } else if (currentViewIndex == 2) {
-      return NotesView(
-        notes: notes,
-        onDeleteNote: _deleteNote,
-        onUpdateNote: _updateNote,
-      );
+  Widget _buildBody() {
+    switch (_currentIndex) {
+      case 0:
+        return HomeView(
+          selectedLanguage: selectedLanguage,
+          selectedLevel: selectedLevel,
+          notesCount: notes.length,
+          onOpenDrawer: _openDrawer,
+          onStartQuiz: _startQuiz,
+        );
+      case 1:
+        return NotesView(
+          notes: notes,
+          onDeleteNote: _deleteNote,
+          onUpdateNote: _updateNote,
+        );
+      case 2:
+        return ProfileView(
+          totalScore: totalCarrots,
+          correctCount: totalCorrect,
+          wrongCount: totalWrong,
+        );
+      case 3:
+        if (selectedLanguage != null && selectedLevel != null) {
+          return QuizView(
+            language: selectedLanguage!,
+            level: selectedLevel!,
+            onBack: () => setState(() => _currentIndex = 0),
+            onAddNote: _addNote,
+            onFinish: _handleQuizFinish, // Yeni parametre
+          );
+        }
+        return const Center(child: Text("Hata: Dil seçilmedi"));
+      default:
+        return const SizedBox();
     }
-    return HomeView(
-      selectedLanguage: selectedLanguage,
-      selectedLevel: selectedLevel,
-      notesCount: notes.length,
-      onOpenDrawer: _openDrawer,
-      onStartQuiz: _startQuiz,
-    );
   }
 }

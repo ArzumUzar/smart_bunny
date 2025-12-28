@@ -1,3 +1,5 @@
+// Dosya: lib/features/quiz/screens/quiz_view.dart
+
 import 'package:flutter/material.dart';
 import '../../../models/language.dart';
 import '../../../models/level.dart';
@@ -11,8 +13,16 @@ class QuizView extends StatefulWidget {
   final Level level;
   final VoidCallback onBack;
   final Function(Note) onAddNote;
+  final Function(int score, int totalQuestions) onFinish; // YENİ EKLENDİ
 
-  const QuizView({Key? key, required this.language, required this.level, required this.onBack, required this.onAddNote}) : super(key: key);
+  const QuizView({
+    Key? key, 
+    required this.language, 
+    required this.level, 
+    required this.onBack, 
+    required this.onAddNote,
+    required this.onFinish, // Constructor'a eklendi
+  }) : super(key: key);
 
   @override
   State<QuizView> createState() => _QuizViewState();
@@ -55,6 +65,8 @@ class _QuizViewState extends State<QuizView> {
       setState(() {
         showResult = true;
       });
+      // Quiz bitti, sonucu ana ekrana bildir
+      widget.onFinish(score, questions.length);
     }
   }
 
@@ -83,7 +95,7 @@ class _QuizViewState extends State<QuizView> {
   @override
   Widget build(BuildContext context) {
     if (showResult) return _buildResultScreen();
-
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -220,12 +232,6 @@ class _QuizViewState extends State<QuizView> {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          Row(
-            children: [
-              IconButton(onPressed: widget.onBack, icon: const Icon(Icons.arrow_back, color: AppColors.purple600)),
-              const Text('Ana Sayfa', style: TextStyle(color: AppColors.purple600, fontSize: 16)),
-            ],
-          ),
           const SizedBox(height: 40),
           Container(
             width: double.infinity,
@@ -275,7 +281,7 @@ class _QuizViewState extends State<QuizView> {
                         children: [
                           Text('🥕', style: TextStyle(fontSize: 20)),
                           SizedBox(width: 12),
-                          Text('Yeni Quiz Başlat', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                          Text('Ana Sayfaya Dön', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
