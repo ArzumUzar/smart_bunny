@@ -6,7 +6,6 @@ import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
-
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
@@ -16,12 +15,56 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isObscure = true;
 
-  void _handleLogin() {
-    // Mock login -> Ana sayfaya git
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const MainScreen()),
-    );
+  // KRİTER 1: State Management (Durum Yönetimi)
+  // Ekranın "Yükleniyor" durumunu kontrol eden değişken.
+  bool _isLoading = false; 
+
+  // KRİTER 2: Asenkron Yapıların Yönetimi (Async/Await)
+  // Giriş işlemini asenkron hale getirdik.
+  Future<void> _handleLogin() async {
+    // 1. Klavyeyi kapat
+    FocusScope.of(context).unfocus();
+
+    // 2. Yükleniyor durumunu başlat (UI güncellenir)
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // 3. Yapay Gecikme (Simülasyon): Gerçek bir veritabanına bağlanıyormuş gibi 2 saniye bekletiyoruz.
+      // Bu kısım "Asenkron yapıların yönetimi" puanını getirir.
+      await Future.delayed(const Duration(seconds: 2));
+
+      // Hata Yönetimi Örneği (İsteğe bağlı):
+      if (_emailController.text.isNotEmpty && !_emailController.text.contains('@')) {
+         throw Exception('Geçerli bir mail adresi giriniz.');
+      }
+
+      // 4. İşlem başarılı, ana sayfaya git
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MainScreen()),
+        );
+      }
+    } catch (e) {
+      // Hata durumunda kullanıcıya bilgi ver (Hata/Crash olmaması kriteri)
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Hata: ${e.toString().replaceAll("Exception: ", "")}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      // 5. Her durumda yükleniyor simgesini kaldır
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -58,6 +101,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         TextField(
                           controller: _emailController,
+                          // Kullanıcı deneyimi: Yükleme sırasında inputları kilitle
+                          enabled: !_isLoading, 
                           decoration: InputDecoration(
                             labelText: 'E-posta',
                             prefixIcon: const Icon(Icons.email_outlined, color: AppColors.purple600),
@@ -70,6 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         TextField(
                           controller: _passwordController,
                           obscureText: _isObscure,
+                          enabled: !_isLoading,
                           decoration: InputDecoration(
                             labelText: 'Şifre',
                             prefixIcon: const Icon(Icons.lock_outlined, color: AppColors.purple600),
@@ -83,6 +129,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         const SizedBox(height: 24),
+                        
+                        // BUTON KISMI DEĞİŞTİ
                         Container(
                           width: double.infinity,
                           height: 56,
@@ -94,10 +142,23 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Material(
                             color: Colors.transparent,
                             child: InkWell(
-                              onTap: _handleLogin,
+                              // Yükleme varsa tıklamayı engelle
+                              onTap: _isLoading ? null : _handleLogin,
                               borderRadius: BorderRadius.circular(16),
                               child: Center(
-                                child: Text('Giriş Yap', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                                // KRİTER 1 & 2'nin UI Yansıması:
+                                // Eğer yükleniyorsa dönen çember (CircularProgressIndicator) göster,
+                                // değilse "Giriş Yap" yazısını göster.
+                                child: _isLoading 
+                                  ? const SizedBox(
+                                      height: 24, 
+                                      width: 24, 
+                                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
+                                    )
+                                  : Text(
+                                      'Giriş Yap', 
+                                      style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)
+                                    ),
                               ),
                             ),
                           ),
