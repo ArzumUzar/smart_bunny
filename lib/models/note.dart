@@ -4,8 +4,8 @@ class Note {
   final String correctAnswer;
   final String userAnswer;
   String note;
-  final String language; // String olarak değiştirdik (Supabase uyumu için)
-  final String level;    // String olarak değiştirdik
+  final String language; 
+  final String level;    
 
   Note({
     required this.id,
@@ -17,14 +17,13 @@ class Note {
     required this.level,
   });
 
-  // Supabase'den gelen veriyi modele çevir
   factory Note.fromJson(Map<String, dynamic> json) {
     return Note(
       id: json['id'].toString(),
       question: json['question'],
       correctAnswer: json['correct_answer'],
       userAnswer: json['user_answer'],
-      note: json['user_note'] ?? '', // Eğer not yoksa boş gelsin
+      note: json['user_note'] ?? '', 
       language: json['language'] ?? 'English',
       level: json['level'] ?? 'A1',
     );

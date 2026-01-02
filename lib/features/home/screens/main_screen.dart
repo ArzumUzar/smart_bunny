@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // Supabase
+import 'package:supabase_flutter/supabase_flutter.dart'; 
 import '../../../models/language.dart';
 import '../../../models/level.dart';
-import '../../../models/note.dart'; // Note modelini import ettik
+import '../../../models/note.dart'; 
 import '../../../widgets/language_drawer.dart';
 import '../../../core/utils/colors.dart';
 import 'home_view.dart';
@@ -11,7 +11,7 @@ import '../../notes/screens/notes_view.dart';
 import '../../profile/screens/profile_view.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({Key? key}) : super(key: key);
+  const MainScreen({super.key});
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
@@ -23,35 +23,31 @@ class _MainScreenState extends State<MainScreen> {
   
   int _currentIndex = 0; 
   
-  // --- KULLANICI VERİLERİ ---
   String userName = "Yükleniyor...";
   int totalCarrots = 0;
-  int savedNotesCount = 0; // Veritabanındaki not sayısı
+  int savedNotesCount = 0; 
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchDashboardData(); // Ekran açılınca tüm verileri çek
+    _fetchDashboardData(); 
   }
 
-  // TÜM DASHBOARD VERİLERİNİ ÇEKME (PROFİL + NOT SAYISI)
   Future<void> _fetchDashboardData() async {
     try {
       final userId = Supabase.instance.client.auth.currentUser!.id;
       final client = Supabase.instance.client;
 
-      // 1. Profil Verisini Çek
       final profileData = await client
           .from('profiles')
           .select()
           .eq('id', userId)
           .single();
 
-      // 2. Notların Sayısını Çek (Hepsini indirip sayısını alıyoruz)
       final notesData = await client
           .from('notes')
-          .select('id') // Sadece ID'leri çekmek yeterli (performans için)
+          .select('id') 
           .eq('user_id', userId);
       
       final List<dynamic> notesList = notesData;
@@ -60,7 +56,7 @@ class _MainScreenState extends State<MainScreen> {
         setState(() {
           userName = profileData['full_name'] ?? 'Öğrenci';
           totalCarrots = profileData['total_score'] ?? 0;
-          savedNotesCount = notesList.length; // Gerçek sayı burada!
+          savedNotesCount = notesList.length; 
           isLoading = false;
         });
       }
@@ -95,9 +91,7 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  // Quiz bitince puanı güncelle ve ana sayfaya dön
   Future<void> _handleQuizFinish(int score, int totalQuestions) async {
-    // Önce puanı güncelle
     setState(() {
       totalCarrots += score;
     });
@@ -105,12 +99,10 @@ class _MainScreenState extends State<MainScreen> {
     try {
       final userId = Supabase.instance.client.auth.currentUser!.id;
       
-      // 1. Puanı veritabanına yaz
       await Supabase.instance.client.from('profiles').update({
         'total_score': totalCarrots
       }).eq('id', userId);
 
-      // 2. Not sayısını güncelle (Belki quizde yeni not ekledi)
       await _fetchDashboardData(); 
 
     } catch (e) {
@@ -118,16 +110,14 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  // Quiz içinde not ekleyince bu çalışır (Anlık güncelleme için)
   void _onNoteAdded(Note note) {
     setState(() {
-      savedNotesCount++; // Sayıyı manuel artır ki tekrar çekmeye gerek kalmasın
+      savedNotesCount++; 
     });
   }
 
   void _onBottomNavTap(int index) {
     setState(() => _currentIndex = index);
-    // Notlar sayfasına (index 1) veya Ana sayfaya (index 0) basınca verileri tazele
     if (index == 0 || index == 1) {
       _fetchDashboardData();
     }
@@ -172,7 +162,7 @@ class _MainScreenState extends State<MainScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.2),
+                          color: Colors.orange.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
@@ -213,7 +203,7 @@ class _MainScreenState extends State<MainScreen> {
         return HomeView(
           selectedLanguage: selectedLanguage,
           selectedLevel: selectedLevel,
-          notesCount: savedNotesCount, // ARTIK VERİTABANINDAN GELEN DOĞRU SAYI!
+          notesCount: savedNotesCount, 
           onOpenDrawer: _openDrawer,
           onStartQuiz: _startQuiz,
         );
@@ -231,9 +221,9 @@ class _MainScreenState extends State<MainScreen> {
             level: selectedLevel!,
             onBack: () {
                setState(() => _currentIndex = 0);
-               _fetchDashboardData(); // Quizden dönünce verileri tazele
+               _fetchDashboardData(); 
             },
-            onAddNote: _onNoteAdded, // Not eklenince sayıyı artır
+            onAddNote: _onNoteAdded, 
             onFinish: _handleQuizFinish,
           );
         }

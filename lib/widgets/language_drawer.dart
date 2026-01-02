@@ -10,12 +10,12 @@ class LanguageDrawer extends StatelessWidget {
   final Function(Level) onLevelSelect;
 
   const LanguageDrawer({
-    Key? key,
+    super.key,
     required this.selectedLanguage,
     required this.selectedLevel,
     required this.onLanguageSelect,
     required this.onLevelSelect,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +54,7 @@ class LanguageDrawer extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: isSelected ? AppColors.purple600 : Colors.white,
                         borderRadius: BorderRadius.circular(12),
-                        boxShadow: isSelected ? [BoxShadow(color: AppColors.primaryPurple.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))] : [],
+                        boxShadow: isSelected ? [BoxShadow(color: AppColors.primaryPurple.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))] : [],
                       ),
                       child: Row(
                         children: [
@@ -68,7 +68,7 @@ class LanguageDrawer extends StatelessWidget {
                     ),
                   ),
                 );
-              }).toList(),
+              }),
               if (selectedLanguage != null) ...[
                 const SizedBox(height: 24),
                 const Text('Seviye Seç', style: TextStyle(fontSize: 12, color: Colors.black54)),
@@ -90,14 +90,14 @@ class LanguageDrawer extends StatelessWidget {
                           gradient: isSelected ? AppColors.buttonGradient : null,
                           color: isSelected ? null : Colors.white,
                           borderRadius: BorderRadius.circular(12),
-                          boxShadow: isSelected ? [BoxShadow(color: AppColors.primaryPurple.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))] : [],
+                          boxShadow: isSelected ? [BoxShadow(color: AppColors.primaryPurple.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))] : [],
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(level.code, style: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontSize: 20, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 4),
-                            Text(level.description, style: TextStyle(color: isSelected ? Colors.white.withOpacity(0.8) : Colors.black54, fontSize: 10)),
+                            Text(level.description, style: TextStyle(color: isSelected ? Colors.white.withValues(alpha: 0.8) : Colors.black54, fontSize: 10)),
                           ],
                         ),
                       ),

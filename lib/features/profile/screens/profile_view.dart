@@ -1,25 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // Supabase
+import 'package:supabase_flutter/supabase_flutter.dart'; 
 import '../../../core/utils/colors.dart';
 import '../../../core/utils/rank_service.dart';
 import '../../auth/screens/login_screen.dart';
 
 class ProfileView extends StatelessWidget {
-  final String userName; // İsim parametresi eklendi
+  final String userName; 
   final int totalScore;
 
   const ProfileView({
-    Key? key,
+    super.key,
     required this.userName,
     required this.totalScore,
-  }) : super(key: key);
+  });
 
-  // GERÇEK ÇIKIŞ İŞLEMİ
   Future<void> _handleLogout(BuildContext context) async {
-    // 1. Supabase oturumunu kapat
     await Supabase.instance.client.auth.signOut();
 
-    // 2. Login ekranına at
     if (context.mounted) {
       Navigator.pushAndRemoveUntil(
         context,
@@ -55,7 +52,6 @@ class ProfileView extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           
-          // VERİTABANINDAN GELEN İSİM
           Text(
             userName,
             style: Theme.of(context).textTheme.headlineMedium,
@@ -81,7 +77,7 @@ class ProfileView extends StatelessWidget {
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
-                BoxShadow(color: AppColors.primaryPurple.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10))
+                BoxShadow(color: AppColors.primaryPurple.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10))
               ],
             ),
             child: Column(

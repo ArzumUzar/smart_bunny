@@ -11,13 +11,13 @@ class HomeView extends StatelessWidget {
   final VoidCallback onStartQuiz;
 
   const HomeView({
-    Key? key,
+    super.key,
     required this.selectedLanguage,
     required this.selectedLevel,
     required this.notesCount,
     required this.onOpenDrawer,
     required this.onStartQuiz,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +37,7 @@ class HomeView extends StatelessWidget {
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.purple100),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
             ),
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -92,7 +92,7 @@ class HomeView extends StatelessWidget {
               gradient: selectedLanguage != null && selectedLevel != null ? AppColors.buttonGradient : null,
               color: selectedLanguage == null || selectedLevel == null ? Colors.grey[300] : null,
               borderRadius: BorderRadius.circular(30),
-              boxShadow: selectedLanguage != null && selectedLevel != null ? [BoxShadow(color: AppColors.primaryPurple.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 5))] : [],
+              boxShadow: selectedLanguage != null && selectedLevel != null ? [BoxShadow(color: AppColors.primaryPurple.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 5))] : [],
             ),
             child: Material(
               color: Colors.transparent,

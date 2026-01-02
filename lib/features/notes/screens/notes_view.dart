@@ -4,7 +4,7 @@ import '../../../models/note.dart';
 import '../../../core/utils/colors.dart';
 
 class NotesView extends StatefulWidget {
-  const NotesView({Key? key}) : super(key: key);
+  const NotesView({super.key});
 
   @override
   State<NotesView> createState() => _NotesViewState();
@@ -19,10 +19,9 @@ class _NotesViewState extends State<NotesView> {
   @override
   void initState() {
     super.initState();
-    _fetchNotes(); // Sayfa açılınca notları çek
+    _fetchNotes(); 
   }
 
-  // NOTLARI SUPABASE'DEN ÇEK
   Future<void> _fetchNotes() async {
     try {
       final userId = Supabase.instance.client.auth.currentUser!.id;
@@ -30,7 +29,7 @@ class _NotesViewState extends State<NotesView> {
           .from('notes')
           .select()
           .eq('user_id', userId)
-          .order('created_at', ascending: false); // En yeni en üstte
+          .order('created_at', ascending: false); 
 
       final List<dynamic> data = response;
       if (mounted) {
@@ -44,30 +43,25 @@ class _NotesViewState extends State<NotesView> {
     }
   }
 
-  // NOT SİLME
   Future<void> _deleteNote(String id) async {
-    // Önce listeyi güncelle (Hızlı tepki)
     setState(() {
       notes.removeWhere((n) => n.id == id);
     });
 
-    // Sonra veritabanından sil
     try {
       await Supabase.instance.client.from('notes').delete().eq('id', id);
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Silinemedi!")));
     }
   }
 
-  // NOT GÜNCELLEME (Kişisel not ekleme)
   Future<void> _saveEdit(String id) async {
-    // 1. Veritabanını güncelle
     try {
       await Supabase.instance.client.from('notes').update({
         'user_note': _noteController.text
       }).eq('id', id);
       
-      // 2. Ekranı güncelle
       setState(() {
         final index = notes.indexWhere((n) => n.id == id);
         if (index != -1) notes[index].note = _noteController.text;
@@ -75,6 +69,7 @@ class _NotesViewState extends State<NotesView> {
         _noteController.clear();
       });
     } catch (e) {
+      if (!mounted) return;
        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Kaydedilemedi!")));
     }
   }
@@ -147,7 +142,7 @@ class _NotesViewState extends State<NotesView> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.purple100),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
                 ),
                 padding: const EdgeInsets.all(16),
                 child: Column(

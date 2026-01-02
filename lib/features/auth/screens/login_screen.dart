@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // Supabase
+import 'package:supabase_flutter/supabase_flutter.dart'; 
 import '../../../core/utils/colors.dart';
 import '../../home/screens/main_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
@@ -22,12 +22,10 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // 1. Supabase Giriş İsteği
       await Supabase.instance.client.auth.signInWithPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-      // 2. Başarılıysa Ana Ekrana Git
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -38,11 +36,9 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         String mesaj = "Giriş başarısız.";
         
-        // Sadece şifre hatasını Türkçeleştiriyoruz
         if (e.toString().contains("Invalid login credentials")) {
           mesaj = "E-posta veya şifre yanlış!";
         } else {
-          // Diğer hataları temizleyip göster
           mesaj = e.toString().replaceAll("AuthException:", "").replaceAll("Exception:", "").trim();
         }
 
@@ -83,7 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(24),
-                      boxShadow: [BoxShadow(color: AppColors.primaryPurple.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10))],
+                      boxShadow: [BoxShadow(color: AppColors.primaryPurple.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10))],
                     ),
                     child: Column(
                       children: [
@@ -122,7 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           decoration: BoxDecoration(
                             gradient: AppColors.buttonGradient,
                             borderRadius: BorderRadius.circular(16),
-                            boxShadow: [BoxShadow(color: AppColors.purple600.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))],
+                            boxShadow: [BoxShadow(color: AppColors.purple600.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
                           ),
                           child: Material(
                             color: Colors.transparent,

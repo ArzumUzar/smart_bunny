@@ -2,33 +2,29 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/language.dart';
 import '../../models/level.dart';
 import '../../models/question.dart';
+import 'package:flutter/foundation.dart';
 
 class QuizGenerator {
   
-  // Veritabanından soruları çeken asenkron fonksiyon
   static Future<List<Question>> generateQuestions(Language language, Level level) async {
     try {
-      // 1. Supabase'e istek at: "Bu dil ve seviyedeki soruları getir"
       final response = await Supabase.instance.client
           .from('questions')
           .select()
-          .eq('language', language.name.toLowerCase()) // örn: 'english'
-          .eq('level', level.code.toLowerCase())       // örn: 'a1'
-          .limit(20); // En fazla 20 soru getir
+          .eq('language', language.name.toLowerCase()) 
+          .eq('level', level.code.toLowerCase())       
+          .limit(20); 
 
-      // 2. Gelen veriyi listeye çevir
       final List<dynamic> data = response;
       
       if (data.isEmpty) {
-        return []; // Soru yoksa boş liste dön
+        return []; 
       }
       
-      // 3. JSON verisini Question objesine dönüştür
       return data.map((json) => Question.fromJson(json)).toList();
 
     } catch (e) {
-      // Hata olursa (İnternet yoksa vs.) konsola yaz ve boş dön
-      print('Soru çekme hatası: $e');
+      debugPrint('Soru çekme hatası: $e');
       return [];
     }
   }

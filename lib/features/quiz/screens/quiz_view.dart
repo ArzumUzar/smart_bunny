@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // Not kaydı için gerekli
+import 'package:supabase_flutter/supabase_flutter.dart'; 
 import '../../../models/language.dart';
 import '../../../models/level.dart';
 import '../../../models/question.dart';
@@ -15,21 +15,21 @@ class QuizView extends StatefulWidget {
   final Function(int score, int totalQuestions) onFinish;
 
   const QuizView({
-    Key? key, 
+    super.key, 
     required this.language, 
     required this.level, 
     required this.onBack, 
     required this.onAddNote,
     required this.onFinish,
-  }) : super(key: key);
+  });
 
   @override
   State<QuizView> createState() => _QuizViewState();
 }
 
 class _QuizViewState extends State<QuizView> {
-  List<Question> questions = []; // Sorular listesi
-  bool isLoading = true;         // Yükleniyor mu?
+  List<Question> questions = []; 
+  bool isLoading = true;         
   
   int currentQuestionIndex = 0;
   String? selectedAnswer;
@@ -40,17 +40,16 @@ class _QuizViewState extends State<QuizView> {
   @override
   void initState() {
     super.initState();
-    _loadQuestions(); // Ekran açılınca soruları çek
+    _loadQuestions(); 
   }
 
-  // SORULARI İNTERNETTEN ÇEKME FONKSİYONU
   Future<void> _loadQuestions() async {
     final fetchedQuestions = await QuizGenerator.generateQuestions(widget.language, widget.level);
     
     if (mounted) {
       setState(() {
         questions = fetchedQuestions;
-        isLoading = false; // Yükleme bitti
+        isLoading = false; 
       });
     }
   }
@@ -82,13 +81,11 @@ class _QuizViewState extends State<QuizView> {
     }
   }
 
-  // NOTLARI SUPABASE'E KAYDETME (GÜNCELLENDİ)
   Future<void> _saveToNotes() async {
     if (selectedAnswer != null && selectedAnswer != currentQuestion.correctAnswer) {
       try {
         final userId = Supabase.instance.client.auth.currentUser!.id;
         
-        // 1. Veritabanına Kaydet
         await Supabase.instance.client.from('notes').insert({
           'user_id': userId,
           'question': currentQuestion.question,
@@ -98,14 +95,13 @@ class _QuizViewState extends State<QuizView> {
           'level': widget.level.code,
         });
 
-        // 2. RAM'deki listeye de ekle (Anlık görüntülemek için)
         final note = Note(
           id: 'temp-${DateTime.now().millisecondsSinceEpoch}',
           question: currentQuestion.question,
           correctAnswer: currentQuestion.correctAnswer,
           userAnswer: selectedAnswer!,
-         language: widget.language.name,  // .name ekledik (Enum -> String oldu)
-          level: widget.level.code,        // .code ekledik (Enum -> String oldu)
+         language: widget.language.name,  
+          level: widget.level.code,        
         );
         widget.onAddNote(note);
 
@@ -130,7 +126,6 @@ class _QuizViewState extends State<QuizView> {
 
   @override
   Widget build(BuildContext context) {
-    // 1. YÜKLENİYORSA
     if (isLoading) {
       return const Scaffold(
         body: Center(
@@ -146,7 +141,6 @@ class _QuizViewState extends State<QuizView> {
       );
     }
 
-    // 2. SORU YOKSA
     if (questions.isEmpty) {
       return Scaffold(
         appBar: AppBar(leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: widget.onBack)),
@@ -165,10 +159,8 @@ class _QuizViewState extends State<QuizView> {
       );
     }
 
-    // 3. SONUÇ EKRANI
     if (showResult) return _buildResultScreen();
 
-    // 4. NORMAL QUIZ EKRANI (Senin eski tasarımın korundu)
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -201,7 +193,7 @@ class _QuizViewState extends State<QuizView> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.purple100),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
             ),
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -254,7 +246,7 @@ class _QuizViewState extends State<QuizView> {
                       ),
                     ),
                   );
-                }).toList(),
+                }),
               ],
             ),
           ),
@@ -311,7 +303,7 @@ class _QuizViewState extends State<QuizView> {
             decoration: BoxDecoration(
               gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [AppColors.purple50, Color(0xFFE0F2FE)]),
               borderRadius: BorderRadius.circular(12),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
             ),
             padding: const EdgeInsets.all(32),
             child: Column(

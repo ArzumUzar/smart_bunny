@@ -1,12 +1,9 @@
-
 class RankService {
-  // Rütbe İsimleri
   static const String rankRookie = 'Çaylak Tavşan';
   static const String rankRunner = 'Hızlı Koşucu';
   static const String rankHunter = 'Havuç Avcısı';
   static const String rankLegend = 'Efsanevi Tavşan';
 
-  // Puana göre rütbeyi hesapla
   static String getRank(int score) {
     if (score >= 100) return rankLegend;
     if (score >= 50) return rankHunter;
@@ -14,7 +11,6 @@ class RankService {
     return rankRookie;
   }
 
-  // Bir sonraki rütbe için hedef puanı getir
   static int getNextTarget(int score) {
     if (score >= 100) return 100;
     if (score >= 50) return 100;
@@ -22,7 +18,6 @@ class RankService {
     return 20;
   }
 
-  // İlerleme çubuğu (Progress Bar) için değer üret
   static double getProgress(int score) {
     if (score >= 100) return 1.0;
     

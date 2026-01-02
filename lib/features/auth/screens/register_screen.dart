@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // Supabase eklendi
+import 'package:supabase_flutter/supabase_flutter.dart'; 
 import '../../../core/utils/colors.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({Key? key}) : super(key: key);
+  const RegisterScreen({super.key});
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
@@ -17,13 +17,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isObscure = true;
   bool _isLoading = false;
 
-  // Gerçek Kayıt Fonksiyonu
   Future<void> _handleRegister() async {
     FocusScope.of(context).unfocus();
     setState(() => _isLoading = true);
 
     try {
-      // 1. Validasyonlar (Kontroller)
       if (_nameController.text.trim().isEmpty) {
         throw Exception('Lütfen adınızı giriniz.');
       }
@@ -34,23 +32,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
         throw Exception('Şifre en az 6 karakter olmalıdır.');
       }
 
-      // 2. Supabase Auth ile Kullanıcı Oluşturma
       final AuthResponse res = await Supabase.instance.client.auth.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-      // 3. Kullanıcı oluştuysa, 'profiles' tablosuna ek bilgi (isim, puan) ekle
       if (res.user != null) {
         await Supabase.instance.client.from('profiles').insert({
-          'id': res.user!.id, // Auth ID ile aynı olmalı
+          'id': res.user!.id, 
           'full_name': _nameController.text.trim(),
-          'total_score': 0, // Başlangıç puanı
+          'total_score': 0, 
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Kayıt başarılı! Giriş yapabilirsiniz.'), backgroundColor: Colors.green),
           );
-          // Giriş ekranına yönlendir
           Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginScreen()));
         }
       }
@@ -58,7 +53,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (mounted) {
         String mesaj = "Kayıt yapılamadı.";
 
-        // Sadece 'zaten kayıtlı' hatasını Türkçeleştiriyoruz
         if (e.toString().contains("User already registered") || e.toString().contains("user_already_exists")) {
           mesaj = "Bu e-posta zaten kullanımda.";
         } else {
@@ -105,7 +99,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(24),
-                      boxShadow: [BoxShadow(color: AppColors.primaryPurple.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10))],
+                      boxShadow: [BoxShadow(color: AppColors.primaryPurple.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10))],
                     ),
                     child: Column(
                       children: [
@@ -156,7 +150,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           decoration: BoxDecoration(
                             gradient: AppColors.buttonGradient,
                             borderRadius: BorderRadius.circular(16),
-                            boxShadow: [BoxShadow(color: AppColors.purple600.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))],
+                            boxShadow: [BoxShadow(color: AppColors.purple600.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
                           ),
                           child: Material(
                             color: Colors.transparent,
