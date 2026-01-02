@@ -1,8 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Ekle
 import 'core/utils/colors.dart';
 import 'features/auth/screens/login_screen.dart';
+import 'features/home/screens/main_screen.dart'; // MainScreen'i import et
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Supabase Başlatma
+  await Supabase.initialize(
+    url: 'https://rdoajcrhplkvwzecxffk.supabase.co', // Supabase URL'ini yapıştır
+    anonKey: 'sb_publishable_-A9IAJAHUlkC_HFOxg_Udw_tzvZSc-a', // 'sb_publishable' ile başlayan key'i yapıştır
+  );
+
   runApp(const SmartBunnyApp());
 }
 
@@ -11,12 +21,15 @@ class SmartBunnyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Eğer kullanıcı daha önce giriş yapmışsa direkt Ana Ekrana at
+    final session = Supabase.instance.client.auth.currentSession;
+    
     return MaterialApp(
       title: 'Smart Bunny',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primaryColor: AppColors.primaryPurple,
-        scaffoldBackgroundColor: Colors.transparent,
+        scaffoldBackgroundColor: Colors.white, // Arkaplan rengini sabitledik
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.white,
           elevation: 1,
@@ -27,25 +40,9 @@ class SmartBunnyApp extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-        textTheme: const TextTheme(
-          headlineMedium: TextStyle(
-            color: AppColors.purple700,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
-          titleMedium: TextStyle(
-            color: AppColors.purple700,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-          bodyMedium: TextStyle(
-            color: Colors.black87,
-            fontSize: 16,
-          ),
-        ),
       ),
-      // Uygulama Giriş Ekranı ile başlar
-      home: const LoginScreen(),
+      // Oturum varsa MainScreen, yoksa LoginScreen açılır
+      home: session != null ? const MainScreen() : const LoginScreen(),
     );
   }
 }
