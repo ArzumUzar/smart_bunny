@@ -35,11 +35,8 @@ class RankService {
     } else if (score >= 20) {
       lowerBound = 20;
       upperBound = 50;
-    } else {
-      lowerBound = 0;
-      upperBound = 20;
-    }
-
+    } 
+    
     return (score - lowerBound) / (upperBound - lowerBound);
   }
 }
