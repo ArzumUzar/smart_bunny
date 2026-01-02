@@ -1,6 +1,5 @@
-// Dosya: lib/features/quiz/screens/quiz_view.dart
-
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Not kaydı için gerekli
 import '../../../models/language.dart';
 import '../../../models/level.dart';
 import '../../../models/question.dart';
@@ -13,7 +12,7 @@ class QuizView extends StatefulWidget {
   final Level level;
   final VoidCallback onBack;
   final Function(Note) onAddNote;
-  final Function(int score, int totalQuestions) onFinish; // YENİ EKLENDİ
+  final Function(int score, int totalQuestions) onFinish;
 
   const QuizView({
     Key? key, 
@@ -21,7 +20,7 @@ class QuizView extends StatefulWidget {
     required this.level, 
     required this.onBack, 
     required this.onAddNote,
-    required this.onFinish, // Constructor'a eklendi
+    required this.onFinish,
   }) : super(key: key);
 
   @override
@@ -29,7 +28,9 @@ class QuizView extends StatefulWidget {
 }
 
 class _QuizViewState extends State<QuizView> {
-  late List<Question> questions;
+  List<Question> questions = []; // Sorular listesi
+  bool isLoading = true;         // Yükleniyor mu?
+  
   int currentQuestionIndex = 0;
   String? selectedAnswer;
   bool isAnswered = false;
@@ -39,7 +40,19 @@ class _QuizViewState extends State<QuizView> {
   @override
   void initState() {
     super.initState();
-    questions = QuizGenerator.generateQuestions(widget.language, widget.level);
+    _loadQuestions(); // Ekran açılınca soruları çek
+  }
+
+  // SORULARI İNTERNETTEN ÇEKME FONKSİYONU
+  Future<void> _loadQuestions() async {
+    final fetchedQuestions = await QuizGenerator.generateQuestions(widget.language, widget.level);
+    
+    if (mounted) {
+      setState(() {
+        questions = fetchedQuestions;
+        isLoading = false; // Yükleme bitti
+      });
+    }
   }
 
   Question get currentQuestion => questions[currentQuestionIndex];
@@ -65,27 +78,50 @@ class _QuizViewState extends State<QuizView> {
       setState(() {
         showResult = true;
       });
-      // Quiz bitti, sonucu ana ekrana bildir
       widget.onFinish(score, questions.length);
     }
   }
 
-  void _saveToNotes() {
+  // NOTLARI SUPABASE'E KAYDETME (GÜNCELLENDİ)
+  Future<void> _saveToNotes() async {
     if (selectedAnswer != null && selectedAnswer != currentQuestion.correctAnswer) {
-      final note = Note(
-        id: 'note-${DateTime.now().millisecondsSinceEpoch}',
-        question: currentQuestion.question,
-        correctAnswer: currentQuestion.correctAnswer,
-        userAnswer: selectedAnswer!,
-        language: widget.language,
-        level: widget.level,
-      );
-      widget.onAddNote(note);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Not kaydedildi!'), backgroundColor: AppColors.purple600));
+      try {
+        final userId = Supabase.instance.client.auth.currentUser!.id;
+        
+        // 1. Veritabanına Kaydet
+        await Supabase.instance.client.from('notes').insert({
+          'user_id': userId,
+          'question': currentQuestion.question,
+          'correct_answer': currentQuestion.correctAnswer,
+          'user_answer': selectedAnswer,
+          'language': widget.language.name,
+          'level': widget.level.code,
+        });
+
+        // 2. RAM'deki listeye de ekle (Anlık görüntülemek için)
+        final note = Note(
+          id: 'temp-${DateTime.now().millisecondsSinceEpoch}',
+          question: currentQuestion.question,
+          correctAnswer: currentQuestion.correctAnswer,
+          userAnswer: selectedAnswer!,
+         language: widget.language.name,  // .name ekledik (Enum -> String oldu)
+          level: widget.level.code,        // .code ekledik (Enum -> String oldu)
+        );
+        widget.onAddNote(note);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Not veritabanına kaydedildi!'), backgroundColor: AppColors.purple600));
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Not kaydedilemedi!'), backgroundColor: Colors.red));
+        }
+      }
     }
   }
 
   String _getResultEmoji() {
+    if (questions.isEmpty) return '😐';
     final percentage = (score / questions.length) * 100;
     if (percentage >= 80) return '🎉';
     if (percentage >= 60) return '🐰';
@@ -94,8 +130,45 @@ class _QuizViewState extends State<QuizView> {
 
   @override
   Widget build(BuildContext context) {
+    // 1. YÜKLENİYORSA
+    if (isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: AppColors.primaryPurple),
+              SizedBox(height: 16),
+              Text("Sorular Hazırlanıyor... 🥕"),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // 2. SORU YOKSA
+    if (questions.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: widget.onBack)),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('🤷‍♂️', style: TextStyle(fontSize: 60)),
+              const SizedBox(height: 16),
+              Text('${widget.language.name} - ${widget.level.code}', style: const TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              const Text('Bu seviye için henüz soru eklenmemiş.', style: TextStyle(color: Colors.grey)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // 3. SONUÇ EKRANI
     if (showResult) return _buildResultScreen();
-    
+
+    // 4. NORMAL QUIZ EKRANI (Senin eski tasarımın korundu)
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
