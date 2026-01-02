@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Supabase eklendi
 import '../../../core/utils/colors.dart';
 import 'login_screen.dart';
 
@@ -14,55 +15,69 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isObscure = true;
-  
-  // YENİ EKLENDİ: Yükleniyor durumu
   bool _isLoading = false;
 
-  // YENİ EKLENDİ: Asenkron Kayıt Fonksiyonu
+  // Gerçek Kayıt Fonksiyonu
   Future<void> _handleRegister() async {
-    // Klavye kapat
     FocusScope.of(context).unfocus();
-
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      // 2 saniye bekleme (Simülasyon)
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Basit doğrulama
-      if (_nameController.text.isEmpty || _emailController.text.isEmpty || _passwordController.text.isEmpty) {
-        throw Exception('Lütfen tüm alanları doldurun.');
+      // 1. Validasyonlar (Kontroller)
+      if (_nameController.text.trim().isEmpty) {
+        throw Exception('Lütfen adınızı giriniz.');
+      }
+      if (!_emailController.text.contains('@')) {
+        throw Exception('Geçerli bir mail adresi giriniz.');
+      }
+      if (_passwordController.text.length < 6) {
+        throw Exception('Şifre en az 6 karakter olmalıdır.');
       }
 
-      if (mounted) {
-        // Başarılı mesajı göster
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Kayıt başarılı! Giriş yapabilirsiniz.'), backgroundColor: Colors.green),
-        );
-        
-        // Giriş ekranına yönlendir
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginScreen()));
+      // 2. Supabase Auth ile Kullanıcı Oluşturma
+      final AuthResponse res = await Supabase.instance.client.auth.signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+      // 3. Kullanıcı oluştuysa, 'profiles' tablosuna ek bilgi (isim, puan) ekle
+      if (res.user != null) {
+        await Supabase.instance.client.from('profiles').insert({
+          'id': res.user!.id, // Auth ID ile aynı olmalı
+          'full_name': _nameController.text.trim(),
+          'total_score': 0, // Başlangıç puanı
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Kayıt başarılı! Giriş yapabilirsiniz.'), backgroundColor: Colors.green),
+          );
+          // Giriş ekranına yönlendir
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginScreen()));
+        }
       }
     } catch (e) {
       if (mounted) {
+        String mesaj = "Kayıt yapılamadı.";
+
+        // Sadece 'zaten kayıtlı' hatasını Türkçeleştiriyoruz
+        if (e.toString().contains("User already registered") || e.toString().contains("user_already_exists")) {
+          mesaj = "Bu e-posta zaten kullanımda.";
+        } else {
+          mesaj = e.toString().replaceAll("AuthException:", "").replaceAll("Exception:", "").trim();
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Hata: ${e.toString().replaceAll("Exception: ", "")}'), backgroundColor: Colors.red),
+          SnackBar(content: Text(mesaj), backgroundColor: Colors.red),
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -71,7 +86,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      extendBodyBehindAppBar: true,
       body: Container(
         decoration: BoxDecoration(gradient: AppColors.backgroundGradient),
         child: SafeArea(
@@ -97,7 +111,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       children: [
                         TextField(
                           controller: _nameController,
-                          enabled: !_isLoading, // Yüklenirken kilitle
+                          enabled: !_isLoading,
                           decoration: InputDecoration(
                             labelText: 'Ad Soyad',
                             prefixIcon: const Icon(Icons.person_outline, color: AppColors.purple600),
@@ -147,7 +161,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           child: Material(
                             color: Colors.transparent,
                             child: InkWell(
-                              onTap: _isLoading ? null : _handleRegister, // Fonksiyon bağlandı
+                              onTap: _isLoading ? null : _handleRegister,
                               borderRadius: BorderRadius.circular(16),
                               child: Center(
                                 child: _isLoading
