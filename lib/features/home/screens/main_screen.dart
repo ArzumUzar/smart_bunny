@@ -1,19 +1,17 @@
-// Dosya: lib/features/home/screens/main_screen.dart
-
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Supabase
 import '../../../models/language.dart';
 import '../../../models/level.dart';
-import '../../../models/note.dart';
+import '../../../models/note.dart'; // Note modelini import ettik
 import '../../../widgets/language_drawer.dart';
 import '../../../core/utils/colors.dart';
 import 'home_view.dart';
 import '../../quiz/screens/quiz_view.dart';
 import '../../notes/screens/notes_view.dart';
-import '../../profile/screens/profile_view.dart'; 
+import '../../profile/screens/profile_view.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
-
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
@@ -23,15 +21,54 @@ class _MainScreenState extends State<MainScreen> {
   Language? selectedLanguage;
   Level? selectedLevel;
   
-  // 0: Home, 1: Notes, 2: Profile, 3: Quiz
   int _currentIndex = 0; 
   
-  List<Note> notes = [];
+  // --- KULLANICI VERİLERİ ---
+  String userName = "Yükleniyor...";
+  int totalCarrots = 0;
+  int savedNotesCount = 0; // Veritabanındaki not sayısı
+  bool isLoading = true;
 
-  // --- OYUNLAŞTIRMA PUANLARI ---
-  int totalCarrots = 15; // Başlangıç puanı
-  int totalCorrect = 5;
-  int totalWrong = 2;
+  @override
+  void initState() {
+    super.initState();
+    _fetchDashboardData(); // Ekran açılınca tüm verileri çek
+  }
+
+  // TÜM DASHBOARD VERİLERİNİ ÇEKME (PROFİL + NOT SAYISI)
+  Future<void> _fetchDashboardData() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser!.id;
+      final client = Supabase.instance.client;
+
+      // 1. Profil Verisini Çek
+      final profileData = await client
+          .from('profiles')
+          .select()
+          .eq('id', userId)
+          .single();
+
+      // 2. Notların Sayısını Çek (Hepsini indirip sayısını alıyoruz)
+      final notesData = await client
+          .from('notes')
+          .select('id') // Sadece ID'leri çekmek yeterli (performans için)
+          .eq('user_id', userId);
+      
+      final List<dynamic> notesList = notesData;
+
+      if (mounted) {
+        setState(() {
+          userName = profileData['full_name'] ?? 'Öğrenci';
+          totalCarrots = profileData['total_score'] ?? 0;
+          savedNotesCount = notesList.length; // Gerçek sayı burada!
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Veri çekme hatası: $e');
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
 
   void _openDrawer() => _scaffoldKey.currentState?.openDrawer();
 
@@ -40,16 +77,17 @@ class _MainScreenState extends State<MainScreen> {
       selectedLanguage = language;
       selectedLevel = null;
     });
+    Navigator.pop(context); 
   }
 
   void _handleLevelSelect(Level level) {
     setState(() => selectedLevel = level);
-    Navigator.pop(context); 
+    Navigator.pop(context);
   }
 
   void _startQuiz() {
     if (selectedLanguage != null && selectedLevel != null) {
-      setState(() => _currentIndex = 3); // Quiz modu
+      setState(() => _currentIndex = 3);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Lütfen önce dil ve seviye seçin!')),
@@ -57,35 +95,53 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  // Quiz Bittiğinde Puanları Güncelle
-  void _handleQuizFinish(int score, int totalQuestions) {
+  // Quiz bitince puanı güncelle ve ana sayfaya dön
+  Future<void> _handleQuizFinish(int score, int totalQuestions) async {
+    // Önce puanı güncelle
     setState(() {
       totalCarrots += score;
-      totalCorrect += score;
-      totalWrong += (totalQuestions - score);
-      
-      _currentIndex = 0; // Ana sayfaya dön
     });
+
+    try {
+      final userId = Supabase.instance.client.auth.currentUser!.id;
+      
+      // 1. Puanı veritabanına yaz
+      await Supabase.instance.client.from('profiles').update({
+        'total_score': totalCarrots
+      }).eq('id', userId);
+
+      // 2. Not sayısını güncelle (Belki quizde yeni not ekledi)
+      await _fetchDashboardData(); 
+
+    } catch (e) {
+      debugPrint('Puan güncelleme hatası: $e');
+    }
   }
 
-  void _addNote(Note note) => setState(() => notes.add(note));
-  void _deleteNote(String id) => setState(() => notes.removeWhere((n) => n.id == id));
-  void _updateNote(String id, String noteText) {
+  // Quiz içinde not ekleyince bu çalışır (Anlık güncelleme için)
+  void _onNoteAdded(Note note) {
     setState(() {
-      final index = notes.indexWhere((n) => n.id == id);
-      if (index != -1) notes[index].note = noteText;
+      savedNotesCount++; // Sayıyı manuel artır ki tekrar çekmeye gerek kalmasın
     });
   }
 
   void _onBottomNavTap(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
+    setState(() => _currentIndex = index);
+    // Notlar sayfasına (index 1) veya Ana sayfaya (index 0) basınca verileri tazele
+    if (index == 0 || index == 1) {
+      _fetchDashboardData();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     bool isQuizMode = _currentIndex == 3;
+    
+    if (isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator(color: AppColors.primaryPurple)),
+      );
+    }
 
     return Scaffold(
       key: _scaffoldKey,
@@ -100,7 +156,6 @@ class _MainScreenState extends State<MainScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              // Üst Bar (Sadece Home'da ve Quiz dışında göster)
               if (!isQuizMode)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -131,15 +186,11 @@ class _MainScreenState extends State<MainScreen> {
                     ],
                   ),
                 ),
-              
-              Expanded(
-                child: _buildBody(),
-              ),
+              Expanded(child: _buildBody()),
             ],
           ),
         ),
       ),
-      
       bottomNavigationBar: isQuizMode ? null : BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: _onBottomNavTap,
@@ -162,30 +213,28 @@ class _MainScreenState extends State<MainScreen> {
         return HomeView(
           selectedLanguage: selectedLanguage,
           selectedLevel: selectedLevel,
-          notesCount: notes.length,
+          notesCount: savedNotesCount, // ARTIK VERİTABANINDAN GELEN DOĞRU SAYI!
           onOpenDrawer: _openDrawer,
           onStartQuiz: _startQuiz,
         );
       case 1:
-        return NotesView(
-          notes: notes,
-          onDeleteNote: _deleteNote,
-          onUpdateNote: _updateNote,
-        );
+        return const NotesView(); 
       case 2:
         return ProfileView(
+          userName: userName,
           totalScore: totalCarrots,
-          correctCount: totalCorrect,
-          wrongCount: totalWrong,
         );
       case 3:
         if (selectedLanguage != null && selectedLevel != null) {
           return QuizView(
             language: selectedLanguage!,
             level: selectedLevel!,
-            onBack: () => setState(() => _currentIndex = 0),
-            onAddNote: _addNote,
-            onFinish: _handleQuizFinish, // Yeni parametre
+            onBack: () {
+               setState(() => _currentIndex = 0);
+               _fetchDashboardData(); // Quizden dönünce verileri tazele
+            },
+            onAddNote: _onNoteAdded, // Not eklenince sayıyı artır
+            onFinish: _handleQuizFinish,
           );
         }
         return const Center(child: Text("Hata: Dil seçilmedi"));
